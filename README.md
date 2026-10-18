@@ -100,14 +100,7 @@ sector-21/
 └── vite.config.js
 ```
 
-## 🗺️ Roadmap
 
-- [x] Implement the core two-player gameplay
-- [x] Run the game locally
-- [ ] Refine the arena's visual design
-- [ ] Improve wall and tile graphics
-- [ ] Polish the game interface and player feedback
-- [ ] Prepare a public playable demo
 
 
 ## 📄 License
