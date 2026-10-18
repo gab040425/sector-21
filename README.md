@@ -46,9 +46,6 @@ The game focuses on movement, strategy, timing, and using the arena to your adva
 
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) and npm
 
 ### Installation
 
