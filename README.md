@@ -6,6 +6,8 @@ Enter Sector 21, where one Robot hunts and one Alien fights to survive. Navigate
 
 ## 🎮 About the Game
 
+This is my first attempt to build my own game.
+
 Sector 21 is a local multiplayer browser game where two players compete on the same computer. One player controls the Robot, while the other controls the Alien.
 
 The game focuses on movement, strategy, timing, and using the arena to your advantage.
