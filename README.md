@@ -1,53 +1,107 @@
 # SECTOR 21
 
-**A two-player Robot vs Alien chase game built with React.**
+**A two-player Robot vs Alien chase game built with React and JavaScript.**
 
-Enter Sector 21, where one Robot hunts and one Alien fights to survive. Navigate the arena, use your abilities strategically and outsmart your opponent before time runs out.
+Enter Sector 21, a high-security containment laboratory where an escaped Alien must survive while a security Robot attempts to capture it.
+
+**Two players. One keyboard. Sixty seconds. Only one winner.**
 
 ## 🎮 About the Game
 
 This is my first attempt to build my own game.
 
-Sector 21 is a local multiplayer browser game where two players compete on the same computer. One player controls the Robot, while the other controls the Alien.
+Sector 21 is a local multiplayer browser game where two players compete on the same computer. One controls the Robot, whose objective is to capture the Alien, while the other controls the Alien, whose objective is to survive until the timer reaches zero.
 
-The game focuses on movement, strategy, timing, and using the arena to your advantage.
+Both players must navigate a laboratory filled with machinery, chemical spills, and unpredictable power-ups. Strategic movement, timing, and the ability to anticipate your opponent's decisions are essential.
 
 ## ✨ Features
 
-- **Two-player local multiplayer** — both players play on the same computer.
-- **Robot vs Alien gameplay** — one player hunts while the other tries to survive.
-- **Grid-based arena** — navigate the map and use obstacles strategically.
-- **Time-limited matches** — race against the clock to achieve your objective.
-- **Power-ups and abilities** — use available abilities to gain an advantage.
-- **Browser-based gameplay** — no installation required beyond setting up the project for development.
+### Asymmetric Two-Player Gameplay
 
+- **Robot:** Chase and capture the Alien before time runs out.
+- **Alien:** Evade the Robot and survive the full 60 seconds.
+- Both players compete simultaneously using a single keyboard.
+
+### Laboratory Arena
+
+- A 9×18 grid-based arena with custom pixel-art visuals.
+- Industrial machinery that blocks movement.
+- Toxic chemical spills that temporarily immobilize players.
+- Custom directional sprites for the Robot and Alien.
+- Visual effects that communicate freezing, recharging, and active abilities.
+
+### Power-Ups
+
+Three collectible abilities introduce additional strategy:
+
+| Power-Up | Effect |
+|---|---|
+| ⚡ Overcharge | Attempts a two-tile movement in the selected direction |
+| ❄️ Cryo | Freezes the opposing player for 2 seconds |
+| 🧬 Mutagen | Allows the player to enter one normally impassable wall tile |
+
+Players can carry only one power-up at a time and must decide when to activate it.
+
+### Robot Recharge
+
+The Robot temporarily recharges when the timer reaches **45, 30, and 15 seconds**.
+
+During each three-second recharge, the Robot cannot move or activate abilities, giving the Alien an opportunity to escape.
+
+### Status Effects
+
+- **Cryo:** An icy-blue visual effect indicates freezing.
+- **Chemical spills:** A green effect indicates temporary immobilization.
+- **Mutagen:** A purple blinking effect indicates an active mutation.
+- **Recharge:** The Robot flashes red while recharging.
 
 ## 🕹️ How to Play
 
-1. Start the game and choose your role.
-2. Player 1 controls the Robot; Player 2 controls the Alien.
-3. Navigate the arena using your assigned keyboard controls.
-4. Use the environment and available abilities to outplay your opponent.
-5. Complete your objective before the timer expires.
+### Objectives
+
+**Robot wins:** Capture the Alien before the timer reaches zero.
+
+**Alien wins:** Survive until the 60-second timer expires.
 
 ### Controls
 
-| Action      | Robot | Alien      |
-| ----------- | ----- | ---------- |
-| Move        | WASD  | Arrow keys |
-| Use ability | E     | Enter      |
+| Action | Robot | Alien |
+|---|---|---|
+| Move up | W | ↑ |
+| Move down | S | ↓ |
+| Move left | A | ← |
+| Move right | D | → |
+| Activate power-up | E | Enter |
 
-*Check the in-game instructions for the final control mapping and available abilities.*
+Both players use the same keyboard.
+
+### Gameplay Tips
+
+- Use laboratory machinery to block or redirect your opponent.
+- Avoid chemical spills unless you can afford to be immobilized.
+- Collect power-ups and activate them strategically.
+- As the Alien, take advantage of the Robot's recharge periods.
+- As the Robot, plan your movements carefully before time runs out.
 
 ## 🛠️ Built With
 
-- [React](https://react.dev/) — user interface and game components
-- [Vite](https://vite.dev/) — development server and production build
-- JavaScript — game logic and player interactions
-- CSS — styling and layout
+| Technology | Purpose |
+|---|---|
+| React | Game interface and state-driven rendering |
+| JavaScript | Movement, collision detection, power-ups, timers, and game logic |
+| Vite | Development server and production build |
+| CSS | Containment Lab interface, sprite effects, and responsive styling |
+| PNG pixel-art assets | Characters, laboratory machinery, floors, and chemical spills |
+
+The game runs entirely in the browser without a backend or database.
 
 ## 🚀 Getting Started
 
+### Requirements
+
+- Node.js and npm
+- Git (for cloning the repository)
+- A modern web browser
 
 ### Installation
 
@@ -70,40 +124,68 @@ Start the development server:
 npm run dev
 ```
 
-Open the local URL displayed in your terminal to play the game.
+Open the local URL displayed in your terminal to play Sector 21.
 
 ### Production Build
 
-To create a production build:
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-To preview the production build locally:
+Preview the production build locally:
 
 ```bash
 npm run preview
+```
+
+### Code Quality
+
+Run the ESLint checks:
+
+```bash
+npm run lint
 ```
 
 ## 📁 Project Structure
 
 ```text
 sector-21/
-├── public/          # Public static assets
+├── public/
+│   ├── sprites/
+│   │   ├── robot/         # Directional Robot sprites
+│   │   └── alien/         # Directional Alien sprites
+│   └── tiles/
+│       ├── floor/         # Laboratory floor textures
+│       ├── machinery/     # Impassable laboratory equipment
+│       └── goo/           # Chemical spill artwork
 ├── src/
-│   ├── assets/      # Images and other assets
-│   ├── App.jsx      # Main game and application logic
-│   ├── App.css      # Game component styling
-│   ├── index.css    # Global styles
-│   └── main.jsx     # Application entry point
+│   ├── App.jsx            # Game state and gameplay logic
+│   ├── GameUI.jsx         # Lobby, arena, HUD, and result screens
+│   ├── Containment.css    # Arena styling and visual effects
+│   ├── App.css            # Additional application styles
+│   ├── index.css          # Global styles
+│   └── main.jsx           # Application entry point
 ├── index.html
 ├── package.json
 └── vite.config.js
 ```
 
+## 💡 Development Notes
 
+Sector 21 was created as an opportunity to explore game development using React and JavaScript.
 
+Some of the key development areas include:
+
+- Managing simultaneous player inputs on one keyboard.
+- Implementing movement and collision detection on a grid.
+- Handling temporary abilities and timed status effects.
+- Managing game states such as the lobby, countdown, active match, and results screen.
+- Integrating custom pixel-art assets into a responsive interface.
+- Communicating gameplay mechanics through visual feedback and animations.
+
+The project combines interactive game logic with frontend development and UI design.
 
 ## 📄 License
 
