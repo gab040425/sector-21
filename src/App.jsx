@@ -1,4 +1,5 @@
-import "./App.css";
+import "./Containment.css";
+import GameUI from "./GameUI.jsx";
 import { useEffect, useRef, useState } from "react";
 
 const powerUpTypes = [
@@ -11,15 +12,6 @@ function App() {
 
   const [showLobby, setShowLobby] = useState(true);
   const [countdown, setCountdown] = useState(null);
-  const [players, setPlayers] = useState([]);
-
-  const robotCount = players.filter(
-    (player) => player.character === "robot"
-  ).length;
-
-  const alienCount = players.filter(
-    (player) => player.character === "alien"
-  ).length;
 
   const rows = 9;
   const columns = 18;
@@ -57,6 +49,9 @@ function App() {
 
   const [robot, setRobot] = useState(startingRobot);
   const [alien, setAlien] = useState(startingAlien);
+  // Facing is visual only and persists until the next allowed movement input.
+  const [robotDirection, setRobotDirection] = useState("down");
+  const [alienDirection, setAlienDirection] = useState("down");
 
   // Game state
   const [gameOver, setGameOver] = useState(false);
@@ -70,12 +65,16 @@ function App() {
   const [powerUps, setPowerUps] = useState([]);
 
   const spawnedMilestones = useRef(new Set());
+  const spawnPowerUpRef = useRef(null);
 
   const [robotPowerUp, setRobotPowerUp] = useState(null);
   const [alienPowerUp, setAlienPowerUp] = useState(null);
 
   const [robotFrozen, setRobotFrozen] = useState(false);
   const [alienFrozen, setAlienFrozen] = useState(false);
+  // Visual metadata only: the existing frozen flags/timers still govern movement.
+  const [robotFreezeSource, setRobotFreezeSource] = useState(null);
+  const [alienFreezeSource, setAlienFreezeSource] = useState(null);
 
   const [robotRecharging, setRobotRecharging] = useState(false);
 
@@ -204,6 +203,7 @@ function App() {
     }
 
     if (robotPowerUp === "cryo") {
+      setAlienFreezeSource("cryo");
       setAlienFrozen(true);
 
       setTimeout(() => {
@@ -228,6 +228,7 @@ function App() {
     }
 
     if (alienPowerUp === "cryo") {
+      setRobotFreezeSource("cryo");
       setRobotFrozen(true);
 
       setTimeout(() => {
@@ -317,6 +318,9 @@ function App() {
     };
   }, [gameStarted, gameOver]);
 
+  // Refresh the callback without making movement trigger extra spawns.
+  useEffect(() => { spawnPowerUpRef.current = spawnPowerUp; });
+
   useEffect(() => {
     if (gameOver) {
       return;
@@ -329,7 +333,7 @@ function App() {
       !spawnedMilestones.current.has(timeLeft)
     ) {
       spawnedMilestones.current.add(timeLeft);
-      spawnPowerUp();
+      spawnPowerUpRef.current();
     }
   }, [timeLeft, gameOver]);
 
@@ -337,7 +341,7 @@ function App() {
   useEffect(() => {
     function handleKeyDown(event) {
       // Don't allow movement after game ends
-      if (gameOver) {
+      if (gameOver || showLobby || !gameStarted) {
         return;
       }
 
@@ -382,6 +386,7 @@ function App() {
         if (key === "a") direction = "left";
         if (key === "d") direction = "right";
 
+        setRobotDirection(direction);
         setRobot((current) => {
           let newPosition;
           let enteredWall = false;
@@ -425,6 +430,7 @@ function App() {
           }
 
           if (isSticky(newPosition.row, newPosition.col)) {
+            setRobotFreezeSource("goo");
             setRobotFrozen(true);
 
             setTimeout(() => {
@@ -459,7 +465,7 @@ function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [gameOver, robot, alien, robotFrozen, alienFrozen, robotOvercharged, alienOvercharged, robotMutagen, alienMutagen, robotRecharging]);
+  }); // Rebind after each render to use current positions, effects, and inventory.
 
   function getMutagenPosition(current, direction) {
     let row = current.row;
@@ -583,77 +589,6 @@ function App() {
     };
   }
 
-  function moveRobot(direction) {
-    if (gameOver) {
-      return;
-    }
-
-    if (robotFrozen) {
-      return;
-    }
-
-    if (robotRecharging) {
-      return;
-    }
-
-    setRobot((current) => {
-      let newPosition;
-      let enteredWall = false;
-
-      if (robotMutagen) {
-        const mutagenMove = getMutagenPosition(
-          current,
-          direction
-        );
-
-        newPosition = mutagenMove.position;
-        enteredWall = mutagenMove.enteredWall;
-      } else {
-        const move = getPlayerMovePosition(
-          current,
-          direction,
-          robotOvercharged,
-          robotPowerUp !== null
-        );
-
-        newPosition = move.position;
-
-        if (move.usedOvercharge) {
-          setRobotOvercharged(false);
-        }
-      }
-
-      if (enteredWall) {
-        setRobotMutagen(false);
-      }
-
-      collectPowerUp("robot", newPosition);
-
-      if (
-        newPosition.row === alien.row &&
-        newPosition.col === alien.col
-      ) {
-        setGameOver(true);
-        setWinner("robot");
-      }
-
-      if (
-        isSticky(
-          newPosition.row,
-          newPosition.col
-        )
-      ) {
-        setRobotFrozen(true);
-
-        setTimeout(() => {
-          setRobotFrozen(false);
-        }, 1000);
-      }
-
-      return newPosition;
-    });
-  }
-
   function moveAlien(direction) {
     if (gameOver) {
       return;
@@ -663,6 +598,7 @@ function App() {
       return;
     }
 
+    setAlienDirection(direction);
     setAlien((current) => {
       let newPosition;
       let enteredWall = false;
@@ -706,6 +642,7 @@ function App() {
       }
 
       if (isSticky(newPosition.row, newPosition.col)) {
+        setAlienFreezeSource("goo");
         setAlienFrozen(true);
 
         setTimeout(() => {
@@ -719,6 +656,7 @@ function App() {
 
   // Start game
   function startGame() {
+    if (countdown !== null || gameStarted) return;
     setTimeLeft(60);
     setGameStarted(false);
 
@@ -747,8 +685,12 @@ function App() {
 
   // 🔄 RESTART GAME
   function restartGame() {
+    setRobotRecharging(false);
+    setCountdown(null);
     setRobot(startingRobot);
     setAlien(startingAlien);
+    setRobotDirection("down");
+    setAlienDirection("down");
     setGameOver(false);
     setWinner(null);
     setTimeLeft(60);
@@ -756,6 +698,8 @@ function App() {
 
     setRobotFrozen(false);
     setAlienFrozen(false);
+    setRobotFreezeSource(null);
+    setAlienFreezeSource(null);
 
     setRobotOvercharged(false);
     setAlienOvercharged(false);
@@ -772,301 +716,22 @@ function App() {
     spawnedMilestones.current.clear();
   }
 
-  // Timer displayed in seconds
-  const formattedTime = timeLeft;
-
   return (
-    <>
-      {showLobby ? (
-        <div className="lobby-screen">
-          {countdown !== null && (
-            <div className="countdown-overlay">
-              <div className="countdown-number">
-                {countdown}
-              </div>
-            </div>
-          )}
-          <div className="lobby">
-
-            <div className="lobby-title">
-              <h1>SECTOR 21</h1>
-              <p>EXPERIMENT LAB</p>
-            </div>
-
-                <button
-                  className="start-game-button"
-                  onClick={startGame}
-                >
-                  START GAME
-                </button>
-
-          </div>
-        </div>
-      ) : (
-        <div className="game">
-
-          <h1>SECTOR 21</h1>
-
-          {/* TIMER */}
-          <div className="timer">{formattedTime}</div>
-
-          <div
-            className="game-board"
-            style={{
-              gridTemplateColumns: `repeat(${columns}, 1fr)`,
-              gridTemplateRows: `repeat(${rows}, 1fr)`,
-            }}
-          >
-            {Array.from({
-              length: rows * columns,
-            }).map((_, index) => {
-              const row = Math.floor(index / columns);
-              const col = index % columns;
-
-              const isRobot =
-                robot.row === row &&
-                robot.col === col;
-
-              const isAlien =
-                alien.row === row &&
-                alien.col === col;
-
-              const wall = isWall(row, col);
-              const sticky = isSticky(row, col);
-
-              const powerUpOnTile = powerUps.find(
-                (powerUp) =>
-                  powerUp.row === row &&
-                  powerUp.col === col
-              );
-
-              return (
-                <div
-                  className={`tile ${
-                    wall
-                      ? "wall"
-                      : sticky
-                      ? "sticky"
-                      : ""
-                  }`}
-                  key={index}
-                >
-                  {isRobot && (
-                    <span
-                      className={`player robot ${
-                        robotFrozen
-                          ? "frozen"
-                          : ""
-                      } ${
-                        robotMutagen
-                          ? "mutagen-active"
-                          : ""
-                      } ${
-                        robotRecharging
-                          ? "robot-recharging"
-                          : ""
-                      }`}
-                    >
-                      🤖
-                    </span>
-                  )}
-
-                  {isAlien && (
-                    <span
-                      className={`player alien ${
-                        alienFrozen
-                          ? "frozen"
-                          : ""
-                      } ${
-                        alienMutagen
-                          ? "mutagen-active"
-                          : ""
-                      }`}
-                    >
-                      👽
-                    </span>
-                  )}
-
-                  {powerUpOnTile && (
-                    <span className="power-up">
-                      ⚡
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="hud">
-
-            {/* ROBOT HUD */}
-            <div
-              className={`player-hud robot-hud ${
-                robotRecharging ? "recharging" : ""
-              }`}
-            >
-              <div className="hud-player">
-                <span className="hud-icon">
-                  🤖
-                </span>
-
-                <div>
-                  <div className="hud-name">
-                    ROBOT
-                  </div>
-
-                  {robotRecharging && (
-                    <div className="recharge-status">
-                      🔋 RECHARGING...
-                    </div>
-                  )}
-
-                  <div className="hud-controls">
-                    W A S D • E USE
-                  </div>
-                </div>
-              </div>
-
-              <div className="inventory">
-                <div className="inventory-label">
-                  POWER-UP
-                </div>
-
-                <div className="inventory-slot">
-                  {robotPowerUp ? (
-                    <>
-                      <span className="inventory-icon">
-                        {robotPowerUp ===
-                          "overcharge" &&
-                          "⚡"}
-
-                        {robotPowerUp ===
-                          "cryo" &&
-                          "🧊"}
-
-                        {robotPowerUp ===
-                          "mutagen" &&
-                          "🧬"}
-                      </span>
-
-                      <span className="inventory-name">
-                        {robotPowerUp.toUpperCase()}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="inventory-empty">
-                      EMPTY
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* ALIEN HUD */}
-            <div className="player-hud alien-hud">
-              <div className="hud-player">
-                <span className="hud-icon">
-                  👽
-                </span>
-
-                <div>
-                  <div className="hud-name">
-                    ALIEN
-                  </div>
-
-                  <div className="hud-controls">
-                    ARROW KEYS • ENTER USE
-                  </div>
-                </div>
-              </div>
-
-              <div className="inventory">
-                <div className="inventory-label">
-                  POWER-UP
-                </div>
-
-                <div className="inventory-slot">
-                  {alienPowerUp ? (
-                    <>
-                      <span className="inventory-icon">
-                        {alienPowerUp ===
-                          "overcharge" &&
-                          "⚡"}
-
-                        {alienPowerUp ===
-                          "cryo" &&
-                          "🧊"}
-
-                        {alienPowerUp ===
-                          "mutagen" &&
-                          "🧬"}
-                      </span>
-
-                      <span className="inventory-name">
-                        {alienPowerUp.toUpperCase()}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="inventory-empty">
-                      EMPTY
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* WIN SCREEN */}
-          {gameOver && (
-            <div className="win-screen">
-              <div className="win-box">
-
-                {winner === "robot" ? (
-                  <>
-                    <div className="win-icon">
-                      🤖
-                    </div>
-
-                    <h2>
-                      ALIEN CAPTURED
-                    </h2>
-
-                    <p>
-                      SECTOR 21 HAS BEEN
-                      SECURED.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="win-icon">
-                      👽
-                    </div>
-
-                    <h2>
-                      ALIEN ESCAPED
-                    </h2>
-
-                    <p>
-                      THE ALIEN SUCCESSFULLY
-                      ESCAPED!
-                    </p>
-                  </>
-                )}
-
-                <button onClick={restartGame}>
-                  PLAY AGAIN
-                </button>
-
-              </div>
-            </div>
-          )}
-
-        </div>
-      )}
-    </>
+    <GameUI
+      showLobby={showLobby} countdown={countdown}
+      onStart={startGame} onBack={restartGame}
+      rows={rows} columns={columns} robot={robot} alien={alien}
+      robotDirection={robotDirection} alienDirection={alienDirection}
+      isWall={isWall} isSticky={isSticky} powerUps={powerUps}
+      robotPowerUp={robotPowerUp} alienPowerUp={alienPowerUp}
+      robotFrozen={robotFrozen} alienFrozen={alienFrozen}
+      robotFreezeSource={robotFreezeSource} alienFreezeSource={alienFreezeSource}
+      robotRecharging={robotRecharging}
+      robotOvercharged={robotOvercharged} alienOvercharged={alienOvercharged}
+      robotMutagen={robotMutagen} alienMutagen={alienMutagen}
+      timeLeft={timeLeft} gameOver={gameOver} winner={winner}
+    />
   );
 }
-
 
 export default App;
